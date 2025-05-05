@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DermaTone Chatbot</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f0f0f, #1f1f1f);
+      color: #fff;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background-color: #141414;
+      padding: 15px;
+      text-align: center;
+      font-size: 24px;
+      border-bottom: 1px solid #333;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    .chat-window {
+      flex-grow: 1;
+      padding: 15px;
+      overflow-y: auto;
+      background-color: #111;
+    }
+
+    .chat-message {
+      margin: 10px 0;
+      padding: 10px 15px;
+      border-radius: 15px;
+      max-width: 70%;
+      word-wrap: break-word;
+      line-height: 1.5;
+    }
+
+    .chat-message.user {
+      background-color: #007BFF;
+      color: white;
+      margin-left: auto;
+      text-align: right;
+    }
+
+    .chat-message.bot {
+      background-color: #333;
+      color: #eee;
+      margin-right: auto;
+      text-align: left;
+    }
+
+    .input-area {
+      display: flex;
+      padding: 15px;
+      border-top: 1px solid #333;
+      background-color: #111;
+    }
+
+    .input-area input {
+      flex-grow: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      background-color: #222;
+      color: white;
+    }
+
+    .input-area button {
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-left: 5px;
+      border-radius: 8px;
+      transition: background-color 0.3s;
+    }
+
+    .input-area button:hover {
+      background-color: #218838;
+    }
+
+    #auth-screen {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: #000;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    #auth-screen input {
+      margin: 5px;
+      padding: 10px;
+      border-radius: 8px;
+      background: #222;
+      color: white;
+      border: none;
+      width: 250px;
+    }
+
+    #auth-screen button {
+      padding: 10px 20px;
+      margin-top: 10px;
+      background: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+
+    .captcha-box {
+      display: flex;
+      align-items: center;
+      margin-top: 5px;
+    }
+
+    .captcha-display {
+      background-color: #333;
+      padding: 8px 15px;
+      margin-left: 5px;
+      border-radius: 8px;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+
+    .logout-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background-color: #dc3545;
+      border: none;
+      padding: 8px 15px;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .logout-btn:hover {
+      background-color: #c82333;
+    }
+
+    .import-image {
+      margin-left: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <h2>Welcome to DermaTone Chatbot</h2>
+  <p style="opacity:0.7;">Sign Up / Login to get personalized skin advice</p>
+  <input type="text" id="username" placeholder="Enter username">
+  <input type="password" id="password" placeholder="Enter password">
+  <div class="captcha-box">
+    <input type="text" id="captcha-input" placeholder="Enter CAPTCHA">
+    <div id="captcha-display" class="captcha-display"></div>
+    <button onclick="refreshCaptcha()" style="margin-left:5px;">↻</button>
+  </div>
+  <button onclick="authenticate()">Submit</button>
+</div>
+
+<div class="container" style="display:none;" id="chat-container">
+  <div class="header">DermaTone Chatbot</div>
+  <button class="logout-btn" onclick="logout()">Logout</button>
+  <div class="chat-window" id="chat-window"></div>
+  <div class="input-area">
+    <input type="text" id="user-input" placeholder="Type your message here..." onkeydown="checkEnter(event)">
+    <input type="file" id="image-upload" class="import-image" accept="image/*">
+    <button onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<script>
+let generatedCaptcha = '';
+
+function generateCaptcha() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let captcha = '';
+  for (let i = 0; i < 5; i++) {
+    captcha += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return captcha;
+}
+
+function refreshCaptcha() {
+  generatedCaptcha = generateCaptcha();
+  document.getElementById('captcha-display').innerText = generatedCaptcha;
+}
+
+// Initial captcha
+refreshCaptcha();
+
+// Authentication
+function authenticate() {
+  const user = document.getElementById('username').value.trim();
+  const pass = document.getElementById('password').value.trim();
+  const captchaInput = document.getElementById('captcha-input').value.trim().toUpperCase();
+
+  if (!user || !pass) {
+    alert('Please enter both username and password.');
+    return;
+  }
+
+  if (captchaInput !== generatedCaptcha) {
+    alert('Incorrect CAPTCHA. Please try again.');
+    refreshCaptcha();
+    return;
+  }
+
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('chat-container').style.display = 'flex';
+}
+
+// Logout
+function logout() {
+  if (confirm('Are you sure you want to logout?')) {
+    location.reload();
+  }
+}
+
+// Send message
+function sendMessage() {
+  const input = document.getElementById('user-input');
+  const msg = input.value.trim();
+  if (msg === '') return;
+
+  appendMessage('user', msg);
+  generateBotResponse(msg);
+  input.value = '';
+}
+
+// Append message to chat window
+function appendMessage(sender, text) {
+  const chatWindow = document.getElementById('chat-window');
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `chat-message ${sender}`;
+  msgDiv.innerText = text;
+  chatWindow.appendChild(msgDiv);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+// Detect Enter key press
+function checkEnter(event) {
+  if (event.key === "Enter") {
+    sendMessage();
+  }
+}
+
+// Predefined responses (enhanced)
+function generateBotResponse(message) {
+  const msg = message.toLowerCase();
+  let response = "I'm here to assist you with skin care. You can ask me about home remedies, diet tips, dermatologists or product suggestions.";
+
+  if (msg.includes('remedy') || msg.includes('home remedy') || msg.includes('acne') || msg.includes('pimple')) {
+    response = "📋 **Recommended Home Remedies:**\n- Honey mask (anti-bacterial)\n- Aloe Vera gel (soothing)\n- Tea Tree oil (anti-inflammatory)\n- Green Tea rinse (antioxidant)";
+  } else if (msg.includes('diet') || msg.includes('food')) {
+    response = "🥗 **Skin-friendly Diet Tips:**\n- Include berries, oranges, spinach\n- Stay hydrated (8 glasses/day)\n- Limit sugary & oily foods";
+  } else if (msg.includes('exercise') || msg.includes('workout')) {
+    response = "🏃 **Recommended Exercises:**\n- Brisk walk (30 mins daily)\n- Facial yoga for skin tone\n- Stay hydrated during workouts";
+  } else if (msg.includes('dermatologist') || msg.includes('doctor') || msg.includes('skin specialist')) {
+    response = "👨‍⚕️ **Dermatologist Advice:**\n- Consult top clinics like Kaya Skin, VLCC\n- Search 'Dermatologist near me' on Google Maps";
+  } else if (msg.includes('product')) {
+    response = "🛍️ **Suggested Skin Products:**\n- Neutrogena Oil-Free Acne Wash\n- Cetaphil Gentle Skin Cleanser\n- La Roche-Posay Effaclar Duo";
+  } else if (msg.includes('support') || msg.includes('contact')) {
+    response = "📧 **Contact Support:** support@dermatone.com";
+  } else if (msg.includes('feedback') || msg.includes('issue') || msg.includes('report')) {
+    response = "📝 **Feedback:** Please share your feedback at feedback@dermatone.com";
+  }
+
+  appendMessage('bot', response);
+}
+</script>
+
+</body>
+</html>
